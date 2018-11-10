@@ -20,6 +20,16 @@
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
     <title>React App</title>
+    <script>
+      env = <%= JSON.stringify(
+          Object.keys(process.env)
+            .filter(key => key.startsWith('REACT_APP') || key == 'PUBLIC_URL')
+            .reduce((env, key) => {
+              env[key] = process.env[key]
+              return env
+            }, {})
+        )%>;
+    </script>
   </head>
   <body>
     <noscript>
