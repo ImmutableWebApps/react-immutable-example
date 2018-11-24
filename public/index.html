@@ -21,14 +21,7 @@
     -->
     <title>React App</title>
     <script>
-      env = <%= JSON.stringify(
-          Object.keys(process.env)
-            .filter(key => key.startsWith('REACT_APP') || key == 'PUBLIC_URL')
-            .reduce((env, key) => {
-              env[key] = process.env[key]
-              return env
-            }, {})
-        )%>;
+      env = %REACT_APP_CLIENT_ENV%;
     </script>
   </head>
   <body>
