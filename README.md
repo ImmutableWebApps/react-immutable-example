@@ -110,7 +110,7 @@ REACT_APP_ENV=<%-JSON.stringify(env)%>
 
 #### `dist/ng-immutable-example/index.ejs`
 
-__The immutable template that is published along with the other versioned, immutable assets.__ It is combined with `production-config.json` to render the `index.html` that is a deployment manifest.
+__The immutable template that is published along with the other versioned, immutable assets.__ It is combined with `config.json` to render the `index.html` that is a deployment manifest.
 
 ```html
 <!doctype html>
