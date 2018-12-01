@@ -1,44 +1,184 @@
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+# ng-immutable-example
 
-## Available Scripts
+This project demonstrates how to convert to an [Immutable Web App](https://immutablwebapps.org) from an Angular app that was generated with [Create React App](https://github.com/facebook/create-react-app) version .
 
-In the project directory, you can run:
+## Getting Started
 
-### `npm start`
+This project was created by running:
 
-Runs the app in the development mode.<br>
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+```bash
+> npx create-react-app react-immutable-example
 
-The page will reload if you make edits.<br>
-You will also see any lint errors in the console.
+> cd react-immutable-example
+```
 
-### `npm test`
+## Immutable Conversion
 
-Launches the test runner in the interactive watch mode.<br>
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Converting this this new application to build an Immutable Web App requires the following steps:
 
-### `npm run build`
+1. Referencing environment variables defined on `window`
+2. Rendering an `index.html` template for deployments
+3. Running locally
 
-Builds the app for production to the `build` folder.<br>
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## Referencing environment variables defined on `window`
 
-The build is minified and the filenames include the hashes.<br>
-Your app is ready to be deployed!
+Create React App has documentation for [adding custome environment variables](https://facebook.github.io/create-react-app/docs/adding-custom-environment-variables). As they mention in the documentation, the environment variables are embedded during the build-time. To make the assets immutable, the setting of values must be shifted from build-time to run-time. Create React App has documentation for [injecting data from the server into the page](https://facebook.github.io/create-react-app/docs/title-and-meta-tags#injecting-data-from-the-server-into-the-page) which is similar to how this Immutable Web App example will handle environment variables.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+Change all references to point to the run-time `window` object instead of the build-time `process` object:
 
-### `npm run eject`
+```diff
+- process.env.REACT_APP_VARIABLE
++ window.env.REACT_APP_VARIABLE
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+## Rendering an `index.html` template for deployments
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+In theory, the role of `index.html` in an Immutable Web App is to be a deployment manifest that only contains configuration that is unique to the environment where it is deployed.
 
-Instead, it will copy all the configuration files and the transitive dependencies (Webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+In practice, there is often a need to include markup or scripts in the `index.html` that are more than just configuration, or that doesn't vary by environment, or that does change between versions of the app. This issue can be resolved by creating an immutable `index.html` template, that is published with the other immutable assets.
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+### Converting index.html to a template
 
-## Learn More
+This example uses [EJS](https://ejs.co/) as the templating language to render `index.html`, but any templating language can be used.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+1) Identify the parts of the `index.html` that vary by environment:
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+    - [`PUBLIC_URL`](https://facebook.github.io/create-react-app/docs/using-the-public-folder#adding-assets-outside-of-the-module-system): URL where the versioned immutable assets will be deployed.
+    - `window.env`: Environment-specific javascript configuration.
+
+2) Set `PUBLIC_URL` to an EJS template string in the `.env`:
+
+```diff
++ PUBLIC_URL=<%=PUBLIC_URL%>
+```
+
+3) Add a new script tag to render the javascript environment-specific variables in `public/index.html`:
+
+```diff
+<head>
+    ...
++   <script>
++       env = %REACT_APP_CLIENT_ENV%;
++   </script>
+</head>
+```
+
+4) Set `REACT_APP_CLIENT_ENV` to an EJS template string in the `.env`:
+
+```diff
+  PUBLIC_URL=<%=PUBLIC_URL%>
++ REACT_APP_CLIENT_ENV=<%-JSON.stringify(env)%>
+```
+
+### Example
+
+#### `public/index.html`:
+
+__The source template that is converted into an immutable template during the build.__
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <link rel="shortcut icon" href="%PUBLIC_URL%/favicon.ico">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="theme-color" content="#000000">
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json">
+    <title>React App</title>
+    <script>
+      env = %REACT_APP_ENV%;
+    </script>
+  </head>
+  <body>
+    <noscript>
+      You need to enable JavaScript to run this app.
+    </noscript>
+    <div id="root"></div>
+  </body>
+</html>
+```
+
+#### `.env`
+
+__The build-time environment variables used to generate the immutable template.__
+
+```sh
+PUBLIC_URL=<%=PUBLIC_URL%>
+REACT_APP_ENV=<%-JSON.stringify(env)%>
+```
+
+#### `dist/ng-immutable-example/index.ejs`
+
+__The immutable template that is published along with the other versioned, immutable assets.__ It is combined with `production-config.json` to render the `index.html` that is a deployment manifest.
+
+```html
+<!doctype html>
+<html lang="en">
+  <head>
+      <meta charset="utf-8">
+      <link rel="shortcut icon" href="<%=PUBLIC_URL%>/favicon.ico">
+      <meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no">
+      <meta name="theme-color" content="#000000">
+      <link rel="manifest" href="<%=PUBLIC_URL%>/manifest.json">
+      <title>React App</title>
+      <script>env = <%-JSON.stringify(env)%>;</script>
+      <link href="<%=PUBLIC_URL%>/static/css/main.6bd13355.chunk.css" rel="stylesheet">
+  </head>
+  <body>
+      <noscript>
+        You need to enable JavaScript to run this app.
+      </noscript>
+      <div id="root"></div>
+      <script>...</script>
+      <script src="<%=PUBLIC_URL%>/static/js/1.a700ff87.chunk.js"></script>
+      <script src="<%=PUBLIC_URL%>/static/js/main.b75225a8.chunk.js"></script>
+  </body>
+</html>
+```
+
+#### `config.json`:
+
+__The environments-specific values that vary.__ This is combined with the published immutable template to be rendered into `index.html`. It is not an immutable asset and should be managed as deployment-specific configuration.
+
+```json
+{
+    "PUBLIC_URL": "https://assets.react-immutable-example.com/1.0.0",
+    "env": {
+        "api": "https://api.react-immutable-example.com"
+    }
+}
+```
+
+#### Rendered `index.html`
+
+__The environment-specific deployment manifest.__ It is the product of rendering an immutable template against the `config.json`. Publishing this file to the web application environment is an atomic deployment.
+
+```html
+<!doctype html>
+<html lang="en">
+  <head>
+      <meta charset="utf-8">
+      <link rel="shortcut icon" href="https://assets.react-immutable-example.com/1.0.0/favicon.ico">
+      <meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no">
+      <meta name="theme-color" content="#000000">
+      <link rel="manifest" href="https://assets.react-immutable-example.com/1.0.0/manifest.json">
+      <title>React App</title>
+      <script>env = { "api": "https://api.react-immutable-example.com" };</script>
+      <link href="https://assets.react-immutable-example.com/1.0.0/static/css/main.6bd13355.chunk.css" rel="stylesheet">
+  </head>
+  <body>
+      <noscript>
+        You need to enable JavaScript to run this app.
+      </noscript>
+      <div id="root"></div>
+      <script>...</script>
+      <script src="https://assets.react-immutable-example.com/1.0.0/static/js/1.a700ff87.chunk.js"></script>
+      <script src="https://assets.react-immutable-example.com/1.0.0/static/js/main.b75225a8.chunk.js"></script>
+  </body>
+</html>
+```
+
+## Future Work
+
+This project will be updated as better patterns for building Immutable Web Apps are established and as Angular CLI changes.
