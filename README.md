@@ -194,7 +194,7 @@ REACT_APP_ENV=<%-JSON.stringify(env)%>
 
 ```sh
 PUBLIC_URL=/
-REACT_APP_ENV={ api: "https://localhost:3001/api"}
+REACT_APP_ENV={ api: "https://localhost:3001/api" }
 ```
 
 ## Future Work
